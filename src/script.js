@@ -49,7 +49,7 @@ debugObject.reset = () => {
 gui.add(debugObject, "reset");
 
 /**
- * Base
+ * Globals
  */
 // Canvas
 const canvas = document.querySelector("canvas.webgl");
@@ -66,7 +66,7 @@ const playHitSound = (collision) => {
     const impactStrength = collision.contact.getImpactVelocityAlongNormal();
 
     if (impactStrength > 1.5) {
-        hitSound.volume = Math.random();
+        hitSound.volume = impactStrength; // TODO: log map from impactVelocity to volume. Set ceiling on max velocity.
         hitSound.currentTime = 0;
         hitSound.play();
     }
@@ -79,12 +79,12 @@ const textureLoader = new THREE.TextureLoader();
 const cubeTextureLoader = new THREE.CubeTextureLoader();
 
 const environmentMapTexture = cubeTextureLoader.load([
-    "/textures/environmentMaps/0/px.png",
-    "/textures/environmentMaps/0/nx.png",
-    "/textures/environmentMaps/0/py.png",
-    "/textures/environmentMaps/0/ny.png",
-    "/textures/environmentMaps/0/pz.png",
-    "/textures/environmentMaps/0/nz.png",
+    "/textures/environmentMaps/0/px.jpg",
+    "/textures/environmentMaps/0/nx.jpg",
+    "/textures/environmentMaps/0/py.jpg",
+    "/textures/environmentMaps/0/ny.jpg",
+    "/textures/environmentMaps/0/pz.jpg",
+    "/textures/environmentMaps/0/nz.jpg",
 ]);
 
 /**
