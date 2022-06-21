@@ -11,6 +11,9 @@ const gui = new dat.GUI();
 const debugObject = {};
 const debugVars = {
     gravity: -9.8, // m/s^2
+    // The upper limit of the range of impact velocities that can affect the impact sound.
+    // Any impact velocities over this value will sound the same
+    impactVelocitySoundCeiling: 20, // m/s
 };
 
 debugObject.createSphere = () => {
@@ -66,7 +69,7 @@ const playHitSound = (collision) => {
     const impactStrength = collision.contact.getImpactVelocityAlongNormal();
 
     if (impactStrength > 1.5) {
-        hitSound.volume = impactStrength; // TODO: log map from impactVelocity to volume. Set ceiling on max velocity.
+        hitSound.volume = impactStrength; // TODO: log map from impactVelocity to volume. Set ceiling on max velocity to account for.
         hitSound.currentTime = 0;
         hitSound.play();
     }
