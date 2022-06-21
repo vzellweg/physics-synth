@@ -9,6 +9,9 @@ import * as CANNON from "cannon-es";
  */
 const gui = new dat.GUI();
 const debugObject = {};
+const debugVars = {
+    gravity: -9.8, // m/s^2
+};
 
 debugObject.createSphere = () => {
     createSphere(Math.random() * 0.5, {
@@ -28,6 +31,7 @@ debugObject.createBox = () => {
     });
 };
 gui.add(debugObject, "createBox");
+gui.add(debugVars, "gravity");
 
 // Reset
 debugObject.reset = () => {
