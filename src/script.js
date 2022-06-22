@@ -65,6 +65,16 @@ const canvas = document.querySelector("canvas.webgl");
 // Scene
 const scene = new THREE.Scene();
 
+const gameState = {
+    delayRate: 2,
+    delayAmount: 0,
+    sphereImpactNote: "C3",
+};
+
+gui.add(gameState, "delayRate", 0, 4, 0.1);
+gui.add(gameState, "delayAmount", 0, 100);
+gui.add(gameState, "sphereImpactNote");
+
 /**
  * Sounds
  */
@@ -90,7 +100,7 @@ const playHitSound = (collision) => {
     // hitSound.currentTime = 0;
     // hitPlayer.start(0);
     hitPlayer.triggerAttackRelease(
-        "C3",
+        gameState.sphereImpactNote,
         undefined,
         undefined,
         THREE.MathUtils.mapLinear(
@@ -151,7 +161,7 @@ const defaultContactMaterial = new CANNON.ContactMaterial(
 world.defaultContactMaterial = defaultContactMaterial;
 
 // Floor
-const floorShape = new CANNON.Plane();
+const floorShape = new CANNON.Box(new CANNON.Vec3(5, 5, 0.01));
 const floorBody = new CANNON.Body();
 floorBody.mass = 0;
 floorBody.addShape(floorShape);
