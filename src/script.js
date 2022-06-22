@@ -1,5 +1,6 @@
 import "./style.css";
 import * as THREE from "three";
+import * as Tone from "tone";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import * as dat from "lil-gui";
 import * as CANNON from "cannon-es";
@@ -13,8 +14,12 @@ const debugVars = {
     gravity: -9.8, // m/s^2
     // The upper limit of the range of impact velocities that can affect the impact sound.
     // Any impact velocities over this value will sound the same
-    impactVelocitySoundCeiling: 20, // m/s
+    // TODO: consider making this dynamic, based on the expected max velocity
+    impactVelocitySoundCeiling: 10, // m/s
 };
+
+gui.add(debugVars, "gravity");
+gui.add(debugVars, "impactVelocitySoundCeiling");
 
 debugObject.createSphere = () => {
     createSphere(Math.random() * 0.5, {
@@ -63,16 +68,51 @@ const scene = new THREE.Scene();
 /**
  * Sounds
  */
-const hitSound = new Audio("/sounds/hit.mp3");
+const hitPlayer = new Tone.Sampler({
+    urls: { C3: "hit.mp3" },
+    baseUrl: "/sounds/",
+}).toDestination();
+// const hitPlayer = new Tone.Player("/sounds/hit.mp3").toDestination();
+// const hitSound = new Audio("/sounds/hit.mp3");
+console.log(`sample Time ${hitPlayer.sampleTime}`);
+console.log("player: ", hitPlayer);
 
 const playHitSound = (collision) => {
     const impactStrength = collision.contact.getImpactVelocityAlongNormal();
 
-    if (impactStrength > 1.5) {
-        hitSound.volume = impactStrength; // TODO: log map from impactVelocity to volume. Set ceiling on max velocity to account for.
-        hitSound.currentTime = 0;
-        hitSound.play();
+    if (Tone.context.state !== "running") {
+        Tone.context.resume();
     }
+    // map from impactVelocity to volume. Set ceiling on max velocity to account for.
+    // TODO: Logarithmic mapping will probably sound better
+    // TODO: size of ball affects pitch?
+    // TODO: more reverb on high velocities
+    // hitSound.currentTime = 0;
+    // hitPlayer.start(0);
+    hitPlayer.triggerAttackRelease(
+        "C3",
+        undefined,
+        undefined,
+        THREE.MathUtils.mapLinear(
+            Math.min(impactStrength, debugVars.impactVelocitySoundCeiling),
+            0,
+            debugVars.impactVelocitySoundCeiling,
+            0,
+            1
+        )
+    );
+    // Tone.ToneAudioBuffer.loaded().then(() => {
+    //     hitPlayer.triggerAttack(
+    //         "C3",
+    //         0,
+    //
+    //     );
+    // });
+
+    // console.log(
+    //     `impactVelocity: ${impactStrength}, volume: ${hitSound.volume}`
+    // );
+    // console.log(collision);
 };
 
 /**
