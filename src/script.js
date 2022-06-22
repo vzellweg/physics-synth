@@ -97,8 +97,7 @@ const playHitSound = (collision) => {
     // TODO: Logarithmic mapping will probably sound better
     // TODO: size of ball affects pitch?
     // TODO: more reverb on high velocities
-    // hitSound.currentTime = 0;
-    // hitPlayer.start(0);
+    // Possible feature: increment note for each hit
     hitPlayer.triggerAttackRelease(
         gameState.sphereImpactNote,
         undefined,
@@ -111,18 +110,6 @@ const playHitSound = (collision) => {
             1
         )
     );
-    // Tone.ToneAudioBuffer.loaded().then(() => {
-    //     hitPlayer.triggerAttack(
-    //         "C3",
-    //         0,
-    //
-    //     );
-    // });
-
-    // console.log(
-    //     `impactVelocity: ${impactStrength}, volume: ${hitSound.volume}`
-    // );
-    // console.log(collision);
 };
 
 /**
@@ -159,14 +146,6 @@ const defaultContactMaterial = new CANNON.ContactMaterial(
     }
 );
 world.defaultContactMaterial = defaultContactMaterial;
-
-// Floor
-const floorShape = new CANNON.Box(new CANNON.Vec3(5, 5, 0.01));
-const floorBody = new CANNON.Body();
-floorBody.mass = 0;
-floorBody.addShape(floorShape);
-floorBody.quaternion.setFromAxisAngle(new CANNON.Vec3(-1, 0, 0), Math.PI * 0.5);
-world.addBody(floorBody);
 
 /**
  * Utils
@@ -260,6 +239,13 @@ const floor = new THREE.Mesh(
 floor.receiveShadow = true;
 floor.rotation.x = -Math.PI * 0.5;
 scene.add(floor);
+
+const floorShape = new CANNON.Box(new CANNON.Vec3(5, 5, 0.01));
+const floorBody = new CANNON.Body();
+floorBody.mass = 0;
+floorBody.addShape(floorShape);
+floorBody.quaternion.setFromAxisAngle(new CANNON.Vec3(-1, 0, 0), Math.PI * 0.5);
+world.addBody(floorBody);
 
 /**
  * Lights
