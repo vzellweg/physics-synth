@@ -5,6 +5,12 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import * as dat from "lil-gui";
 import * as CANNON from "cannon-es";
 
+import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
+import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
+import { ShaderPass } from "three/examples/jsm/postprocessing/ShaderPass.js";
+import { PixelShader } from "three/examples/jsm/shaders/PixelShader.js";
+import { MathUtils } from "three";
+
 /**
  * Debug
  */
@@ -22,7 +28,7 @@ gui.add(debugVars, "gravity");
 gui.add(debugVars, "impactVelocitySoundCeiling");
 
 debugObject.createSphere = () => {
-    createSphere(Math.random() * 0.5, {
+    createSphere(Math.random() * 0.5 + 0.1, {
         x: (Math.random() - 0.5) * 3,
         y: 3,
         z: (Math.random() - 0.5) * 3,
@@ -65,23 +71,39 @@ const canvas = document.querySelector("canvas.webgl");
 // Scene
 const scene = new THREE.Scene();
 
+let composer, pixelPass;
+
 const gameState = {
     delayRate: 2,
     delayAmount: 0,
     sphereImpactNote: "C3",
+    delayFeedback: 0.1,
+    delayTime: ".01",
+    pixelSize: 2,
 };
 
 gui.add(gameState, "delayRate", 0, 4, 0.1);
 gui.add(gameState, "delayAmount", 0, 100);
 gui.add(gameState, "sphereImpactNote");
+gui.add(gameState, "delayFeedback", 0, 0.99);
+gui.add(gameState, "delayTime");
+gui.add(gameState, "pixelSize", 2, 28, 2);
 
 /**
  * Sounds
  */
+
+const bitCrushFX = new Tone.BitCrusher(
+    (34 - gameState.pixelSize) / 2
+).toDestination();
+const feedbackFX = new Tone.FeedbackDelay(
+    gameState.delayTime,
+    gameState.delayFeedback
+).connect(bitCrushFX);
 const hitPlayer = new Tone.Sampler({
     urls: { C3: "hit.mp3" },
     baseUrl: "/sounds/",
-}).toDestination();
+}).connect(feedbackFX);
 // const hitPlayer = new Tone.Player("/sounds/hit.mp3").toDestination();
 // const hitSound = new Audio("/sounds/hit.mp3");
 console.log(`sample Time ${hitPlayer.sampleTime}`);
@@ -89,7 +111,7 @@ console.log("player: ", hitPlayer);
 
 const playHitSound = (collision) => {
     const impactStrength = collision.contact.getImpactVelocityAlongNormal();
-
+    // Fix for web audio context error, not sure if it actually helps anything though
     if (Tone.context.state !== "running") {
         Tone.context.resume();
     }
@@ -97,6 +119,12 @@ const playHitSound = (collision) => {
     // TODO: Logarithmic mapping will probably sound better
     // TODO: size of ball affects pitch?
     // TODO: more reverb on high velocities
+    // Apply Audio effects
+    bitCrushFX.set({ bits: (34 - gameState.pixelSize) / 2 });
+    feedbackFX.set({
+        delayTime: gameState.delayTime,
+        feedback: gameState.delayFeedback,
+    });
     // Possible feature: increment note for each hit
     hitPlayer.triggerAttackRelease(
         gameState.sphereImpactNote,
@@ -221,8 +249,6 @@ const createBox = (width, height, depth, position) => {
     objectsToUpdate.push({ mesh, body });
 };
 
-// createBox(1, 1.5, 2, { x: 0, y: 3, z: 0 });
-
 /**
  * Floor
  */
@@ -314,6 +340,20 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.setSize(sizes.width, sizes.height);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
+// postprocessing
+
+composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+
+pixelPass = new ShaderPass(PixelShader);
+pixelPass.uniforms["resolution"].value = new THREE.Vector2(
+    window.innerWidth,
+    window.innerHeight
+);
+pixelPass.uniforms["resolution"].value.multiplyScalar(window.devicePixelRatio);
+composer.addPass(pixelPass);
+// TODO: post processing for audio delay visualization
+
 /**
  * Animate
  */
@@ -321,6 +361,8 @@ const clock = new THREE.Clock();
 let oldElapsedTime = 0;
 
 const tick = () => {
+    pixelPass.uniforms["pixelSize"].value = gameState.pixelSize;
+
     const elapsedTime = clock.getElapsedTime();
     const deltaTime = elapsedTime - oldElapsedTime;
     oldElapsedTime = elapsedTime;
@@ -337,7 +379,11 @@ const tick = () => {
     controls.update();
 
     // Render
-    renderer.render(scene, camera);
+    if (gameState.pixelSize > 2) {
+        composer.render();
+    } else {
+        renderer.render(scene, camera);
+    }
 
     // Call tick again on the next frame
     window.requestAnimationFrame(tick);
