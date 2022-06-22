@@ -24,7 +24,7 @@ const debugVars = {
     impactVelocitySoundCeiling: 10, // m/s
 };
 
-gui.add(debugVars, "gravity");
+gui.add(debugVars, "gravity", -30, -3);
 gui.add(debugVars, "impactVelocitySoundCeiling");
 
 debugObject.createSphere = () => {
@@ -45,13 +45,12 @@ debugObject.createBox = () => {
     });
 };
 gui.add(debugObject, "createBox");
-gui.add(debugVars, "gravity");
 
 // Reset
 debugObject.reset = () => {
     for (const object of objectsToUpdate) {
         // Remove body
-        object.body.removeEventListener("collide", playHitSound);
+        object.body.removeEventListener("collide", playHitSound(object));
         world.removeBody(object.body);
 
         // Remove mesh
@@ -80,6 +79,7 @@ const gameState = {
     delayFeedback: 0.1,
     delayTime: ".01",
     pixelSize: 2,
+    noteIncrementOnBounce: 0,
 };
 
 gui.add(gameState, "delayRate", 0, 4, 0.1);
@@ -88,6 +88,7 @@ gui.add(gameState, "sphereImpactNote");
 gui.add(gameState, "delayFeedback", 0, 0.99);
 gui.add(gameState, "delayTime");
 gui.add(gameState, "pixelSize", 2, 28, 2);
+gui.add(gameState, "noteIncrementOnBounce", -5, 5, 1);
 
 /**
  * Sounds
@@ -109,7 +110,7 @@ const hitPlayer = new Tone.Sampler({
 console.log(`sample Time ${hitPlayer.sampleTime}`);
 console.log("player: ", hitPlayer);
 
-const playHitSound = (collision) => {
+const playHitSound = (object) => (collision) => {
     const impactStrength = collision.contact.getImpactVelocityAlongNormal();
     // Fix for web audio context error, not sure if it actually helps anything though
     if (Tone.context.state !== "running") {
@@ -127,7 +128,7 @@ const playHitSound = (collision) => {
     });
     // Possible feature: increment note for each hit
     hitPlayer.triggerAttackRelease(
-        gameState.sphereImpactNote,
+        Tone.Frequency(gameState.sphereImpactNote).transpose(object.transpose),
         undefined,
         undefined,
         THREE.MathUtils.mapLinear(
@@ -138,6 +139,8 @@ const playHitSound = (collision) => {
             1
         )
     );
+
+    object.transpose += gameState.noteIncrementOnBounce;
 };
 
 /**
@@ -161,7 +164,7 @@ const environmentMapTexture = cubeTextureLoader.load([
 const world = new CANNON.World();
 world.broadphase = new CANNON.SAPBroadphase(world);
 world.allowSleep = true;
-world.gravity.set(0, -9.82, 0);
+world.gravity.set(0, debugVars.gravity, 0);
 
 // Default material
 const defaultMaterial = new CANNON.Material("default");
@@ -207,11 +210,11 @@ const createSphere = (radius, position) => {
         material: defaultMaterial,
     });
     body.position.copy(position);
-    body.addEventListener("collide", playHitSound);
     world.addBody(body);
-
+    const object = { mesh, body, transpose: 0 };
+    body.addEventListener("collide", playHitSound(object));
     // Save in objects
-    objectsToUpdate.push({ mesh, body });
+    objectsToUpdate.push(object);
 };
 
 // Create box
@@ -242,11 +245,12 @@ const createBox = (width, height, depth, position) => {
         material: defaultMaterial,
     });
     body.position.copy(position);
-    body.addEventListener("collide", playHitSound);
     world.addBody(body);
+    const object = { mesh, body, transpose: 0 };
+    body.addEventListener("collide", playHitSound(object));
 
     // Save in objects
-    objectsToUpdate.push({ mesh, body });
+    objectsToUpdate.push(object);
 };
 
 /**
@@ -369,6 +373,7 @@ const tick = () => {
 
     // Update physics
     world.step(1 / 60, deltaTime, 3);
+    world.gravity.set(0, debugVars.gravity, 0);
 
     for (const object of objectsToUpdate) {
         object.mesh.position.copy(object.body.position);
