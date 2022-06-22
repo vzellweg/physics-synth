@@ -22,10 +22,14 @@ const debugVars = {
     // Any impact velocities over this value will sound the same
     // TODO: consider making this dynamic, based on the expected max velocity
     impactVelocitySoundCeiling: 10, // m/s
+    friction: 0.1,
+    restitution: 0.9,
 };
 
 gui.add(debugVars, "gravity", -30, -3);
 gui.add(debugVars, "impactVelocitySoundCeiling");
+gui.add(debugVars, "friction");
+gui.add(debugVars, "restitution");
 
 debugObject.createSphere = () => {
     createSphere(Math.random() * 0.5 + 0.1, {
@@ -74,7 +78,6 @@ let composer, pixelPass;
 
 const gameState = {
     delayRate: 2,
-    delayAmount: 0,
     sphereImpactNote: "C3",
     delayFeedback: 0.1,
     delayTime: ".01",
@@ -83,7 +86,6 @@ const gameState = {
 };
 
 gui.add(gameState, "delayRate", 0, 4, 0.1);
-gui.add(gameState, "delayAmount", 0, 100);
 gui.add(gameState, "sphereImpactNote");
 gui.add(gameState, "delayFeedback", 0, 0.99);
 gui.add(gameState, "delayTime");
@@ -101,10 +103,11 @@ const feedbackFX = new Tone.FeedbackDelay(
     gameState.delayTime,
     gameState.delayFeedback
 ).connect(bitCrushFX);
+const reverbFX = new Tone.Reverb().connect(bitCrushFX);
 const hitPlayer = new Tone.Sampler({
     urls: { C3: "hit.mp3" },
     baseUrl: "/sounds/",
-}).connect(feedbackFX);
+}).fan(feedbackFX, reverbFX);
 // const hitPlayer = new Tone.Player("/sounds/hit.mp3").toDestination();
 // const hitSound = new Audio("/sounds/hit.mp3");
 console.log(`sample Time ${hitPlayer.sampleTime}`);
@@ -112,6 +115,13 @@ console.log("player: ", hitPlayer);
 
 const playHitSound = (object) => (collision) => {
     const impactStrength = collision.contact.getImpactVelocityAlongNormal();
+    const adjustedImpactStrength = THREE.MathUtils.mapLinear(
+        Math.min(impactStrength, debugVars.impactVelocitySoundCeiling),
+        0,
+        debugVars.impactVelocitySoundCeiling,
+        0,
+        1
+    );
     // Fix for web audio context error, not sure if it actually helps anything though
     if (Tone.context.state !== "running") {
         Tone.context.resume();
@@ -126,18 +136,15 @@ const playHitSound = (object) => (collision) => {
         delayTime: gameState.delayTime,
         feedback: gameState.delayFeedback,
     });
+    reverbFX.set({
+        decay: adjustedImpactStrength * 2,
+    });
     // Possible feature: increment note for each hit
     hitPlayer.triggerAttackRelease(
         Tone.Frequency(gameState.sphereImpactNote).transpose(object.transpose),
         undefined,
         undefined,
-        THREE.MathUtils.mapLinear(
-            Math.min(impactStrength, debugVars.impactVelocitySoundCeiling),
-            0,
-            debugVars.impactVelocitySoundCeiling,
-            0,
-            1
-        )
+        adjustedImpactStrength
     );
 
     object.transpose += gameState.noteIncrementOnBounce;
@@ -168,15 +175,18 @@ world.gravity.set(0, debugVars.gravity, 0);
 
 // Default material
 const defaultMaterial = new CANNON.Material("default");
-const defaultContactMaterial = new CANNON.ContactMaterial(
-    defaultMaterial,
-    defaultMaterial,
-    {
-        friction: 0.1,
-        restitution: 0.7,
-    }
-);
-world.defaultContactMaterial = defaultContactMaterial;
+const updateDefaultMaterial = () => {
+    const defaultContactMaterial = new CANNON.ContactMaterial(
+        defaultMaterial,
+        defaultMaterial,
+        {
+            friction: debugVars.friction,
+            restitution: debugVars.restitution,
+        }
+    );
+    world.defaultContactMaterial = defaultContactMaterial;
+};
+updateDefaultMaterial();
 
 /**
  * Utils
@@ -374,6 +384,13 @@ const tick = () => {
     // Update physics
     world.step(1 / 60, deltaTime, 3);
     world.gravity.set(0, debugVars.gravity, 0);
+
+    if (
+        debugVars.restitution != world.defaultContactMaterial.restitution ||
+        debugVars.friction != world.defaultContactMaterial.friction
+    ) {
+        updateDefaultMaterial();
+    }
 
     for (const object of objectsToUpdate) {
         object.mesh.position.copy(object.body.position);
