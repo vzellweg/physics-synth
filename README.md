@@ -39,6 +39,20 @@ Helpful for debugging when loading models.
 
 #### What did I do?
 
+Assembled project boilerplate of bouncing ball with audio. Explored Tone.js, using Tone.Sampler instead of the three.js audio player. Adjusted Sampler volume based on the collision impact velocity.
+
+#### Any Trouble?
+
+The Tone.js Sampler was hard to understand since the documentation didn't match up with the version I am using. I will refer to the type definitions in the package I downloaded when I'm stuck in the future.
+
+#### What did I learn?
+
+I learned some details around implementing physics with cannon.js. I also learned how to generate sounds with Tone.js.
+
+### Day 2
+
+#### What did I do?
+
 #### Any Trouble?
 
 #### What did I learn?
