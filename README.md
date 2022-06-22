@@ -58,8 +58,3 @@ I learned some details around implementing physics with cannon.js. I also learne
 #### What did I learn?
 
 ## Attributions
-
-### Models:
-
--   [Federico.Villani: Cat - Static Pose](https://sketchfab.com/3d-models/cat-static-pose-27b4c1e4338d44278f46d409cd8c9b76)
--   [daniellaromanoo - Statue Cat](https://sketchfab.com/3d-models/statue-cat-86b5a7b0a4a348129ebe47f65e80a526)
