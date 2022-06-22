@@ -1,0 +1,11 @@
+Model Information:
+* title:	Statue Cat
+* source:	https://sketchfab.com/3d-models/statue-cat-86b5a7b0a4a348129ebe47f65e80a526
+* author:	daniellaromanoo (https://sketchfab.com/daniellaromanoo)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Statue Cat" (https://sketchfab.com/3d-models/statue-cat-86b5a7b0a4a348129ebe47f65e80a526) by daniellaromanoo (https://sketchfab.com/daniellaromanoo) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
