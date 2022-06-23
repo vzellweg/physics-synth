@@ -61,10 +61,12 @@ I also added reverb with a decay value that decreases with the impact velocity.
 
 Yeah I realized the visual delay effect I wanted would require me to write a shader, which is a little beyond the scope of this project. Also, I could not get the feedback example from the three.js documentation to work as I wanted it to.
 
-I looked into making breakable objects, but the work involved with that is pretty lengthy so I did not end up pursuing it. It would have been cool to be able to slice the balls by clicking them.
+I looked into making breakable objects, but the work involved with that is pretty lengthy so I did not end up pursuing it. It would have been cool to be able to slice the spheres by clicking them.
 
 #### What did I learn?
 
 How to manipulate frequencies in Tone.js, it's pretty straightforward and makes me want to try out a musical microtuning project sometime.
+
+### Day 3
 
 ## Attributions

@@ -10,6 +10,7 @@ import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
 import { ShaderPass } from "three/examples/jsm/postprocessing/ShaderPass.js";
 import { PixelShader } from "three/examples/jsm/shaders/PixelShader.js";
 import { MathUtils } from "three";
+import { MembraneSynth } from "tone";
 
 /**
  * Debug
@@ -24,12 +25,14 @@ const debugVars = {
     impactVelocitySoundCeiling: 10, // m/s
     friction: 0.1,
     restitution: 0.9,
+    synthesizeSound: true,
 };
 
 gui.add(debugVars, "gravity", -30, -3);
 gui.add(debugVars, "impactVelocitySoundCeiling");
 gui.add(debugVars, "friction");
 gui.add(debugVars, "restitution");
+gui.add(debugVars, "synthesizeSound");
 
 debugObject.createSphere = () => {
     createSphere(Math.random() * 0.5 + 0.1, {
@@ -108,6 +111,8 @@ const hitPlayer = new Tone.Sampler({
     urls: { C3: "hit.mp3" },
     baseUrl: "/sounds/",
 }).fan(feedbackFX, reverbFX);
+
+const hitSynth = new Tone.MembraneSynth().fan(feedbackFX, reverbFX);
 // const hitPlayer = new Tone.Player("/sounds/hit.mp3").toDestination();
 // const hitSound = new Audio("/sounds/hit.mp3");
 console.log(`sample Time ${hitPlayer.sampleTime}`);
@@ -115,6 +120,7 @@ console.log("player: ", hitPlayer);
 
 const playHitSound = (object) => (collision) => {
     const impactStrength = collision.contact.getImpactVelocityAlongNormal();
+    // Value [0,1] for impact strength used to modulate
     const adjustedImpactStrength = THREE.MathUtils.mapLinear(
         Math.min(impactStrength, debugVars.impactVelocitySoundCeiling),
         0,
@@ -122,32 +128,48 @@ const playHitSound = (object) => (collision) => {
         0,
         1
     );
-    // Fix for web audio context error, not sure if it actually helps anything though
-    if (Tone.context.state !== "running") {
-        Tone.context.resume();
-    }
-    // map from impactVelocity to volume. Set ceiling on max velocity to account for.
-    // TODO: Logarithmic mapping will probably sound better
-    // TODO: size of ball affects pitch?
-    // TODO: more reverb on high velocities
-    // Apply Audio effects
-    bitCrushFX.set({ bits: (34 - gameState.pixelSize) / 2 });
-    feedbackFX.set({
-        delayTime: gameState.delayTime,
-        feedback: gameState.delayFeedback,
-    });
-    reverbFX.set({
-        decay: adjustedImpactStrength * 2,
-    });
-    // Possible feature: increment note for each hit
-    hitPlayer.triggerAttackRelease(
-        Tone.Frequency(gameState.sphereImpactNote).transpose(object.transpose),
-        undefined,
-        undefined,
-        adjustedImpactStrength
-    );
+    if (adjustedImpactStrength > 0.05) {
+        // Set instrument to use
+        const instrument = debugVars.synthesizeSound ? hitSynth : hitPlayer;
+        // Update Membrane Synth settings
+        hitSynth.set({
+            // envelope: ,
+            pitchDecay: Math.max(
+                debugVars.restitution * impactStrength * 1.5,
+                0.001
+            ),
+        });
+        console.log(hitSynth);
+        // Fix for web audio context error, not sure if it actually helps anything though
+        if (Tone.context.state !== "running") {
+            Tone.context.resume();
+        }
+        // map from impactVelocity to volume. Set ceiling on max velocity to account for.
+        // TODO: Logarithmic mapping will probably sound better
+        // TODO: size of ball affects pitch?
+        // TODO: more reverb on high velocities
+        // Apply Audio effects
+        bitCrushFX.set({ bits: (34 - gameState.pixelSize) / 2 });
+        feedbackFX.set({
+            delayTime: gameState.delayTime,
+            feedback: gameState.delayFeedback,
+        });
+        reverbFX.set({
+            // .001 minimum input for reverb decay
+            decay: Math.max(adjustedImpactStrength * 2, 0.001),
+        });
+        // Possible feature: increment note for each hit
+        instrument.triggerAttackRelease(
+            Tone.Frequency(gameState.sphereImpactNote).transpose(
+                object.transpose
+            ),
+            undefined,
+            undefined,
+            adjustedImpactStrength
+        );
 
-    object.transpose += gameState.noteIncrementOnBounce;
+        object.transpose += gameState.noteIncrementOnBounce;
+    }
 };
 
 /**
