@@ -55,6 +55,8 @@ I learned some details around implementing physics with cannon.js. I also learne
 
 Added inputs for gravity, sample playback note, and contact material friction/bounciness. Post-processing "pixelSize" input that also applies BitCrusher to audio.
 
+I also added reverb with a decay value that decreases with the impact velocity.
+
 #### Any Trouble?
 
 Yeah I realized the visual delay effect I wanted would require me to write a shader, which is a little beyond the scope of this project. Also, I could not get the feedback example from the three.js documentation to work as I wanted it to.
