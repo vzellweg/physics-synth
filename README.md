@@ -53,8 +53,16 @@ I learned some details around implementing physics with cannon.js. I also learne
 
 #### What did I do?
 
+Added inputs for gravity, sample playback note, and contact material friction/bounciness. Post-processing "pixelSize" input that also applies BitCrusher to audio.
+
 #### Any Trouble?
 
+Yeah I realized the visual delay effect I wanted would require me to write a shader, which is a little beyond the scope of this project. Also, I could not get the feedback example from the three.js documentation to work as I wanted it to.
+
+I looked into making breakable objects, but the work involved with that is pretty lengthy so I did not end up pursuing it. It would have been cool to be able to slice the balls by clicking them.
+
 #### What did I learn?
+
+How to manipulate frequencies in Tone.js, it's pretty straightforward and makes me want to try out a musical microtuning project sometime.
 
 ## Attributions
