@@ -24,7 +24,7 @@ const debugVars = {
     // TODO: consider making this dynamic, based on the expected max velocity
     impactVelocitySoundCeiling: 10, // m/s
     friction: 0.1,
-    restitution: 0.9,
+    restitution: 0.8,
     synthesizeSound: true,
 };
 
@@ -45,11 +45,16 @@ debugObject.createSphere = () => {
 gui.add(debugObject, "createSphere");
 
 debugObject.createBox = () => {
-    createBox(Math.random(), Math.random(), Math.random(), {
-        x: (Math.random() - 0.5) * 3,
-        y: 3,
-        z: (Math.random() - 0.5) * 3,
-    });
+    createBox(
+        Math.random() + 0.01,
+        Math.random() + 0.01,
+        Math.random() + 0.01,
+        {
+            x: (Math.random() - 0.5) * 3,
+            y: 3,
+            z: (Math.random() - 0.5) * 3,
+        }
+    );
 };
 gui.add(debugObject, "createBox");
 
@@ -80,17 +85,15 @@ const scene = new THREE.Scene();
 let composer, pixelPass;
 
 const gameState = {
-    delayRate: 2,
-    sphereImpactNote: "C3",
+    sphereImpactNote: "C2",
     delayFeedback: 0.1,
-    delayTime: ".01",
+    delayTime: 0.05,
     pixelSize: 2,
     noteIncrementOnBounce: 0,
 };
 
-gui.add(gameState, "delayRate", 0, 4, 0.1);
 gui.add(gameState, "sphereImpactNote");
-gui.add(gameState, "delayFeedback", 0, 0.99);
+gui.add(gameState, "delayFeedback", 0, 0.93);
 gui.add(gameState, "delayTime");
 gui.add(gameState, "pixelSize", 2, 28, 2);
 gui.add(gameState, "noteIncrementOnBounce", -5, 5, 1);
@@ -102,25 +105,28 @@ gui.add(gameState, "noteIncrementOnBounce", -5, 5, 1);
 const bitCrushFX = new Tone.BitCrusher(
     (34 - gameState.pixelSize) / 2
 ).toDestination();
+
 const feedbackFX = new Tone.FeedbackDelay(
     gameState.delayTime,
     gameState.delayFeedback
 ).connect(bitCrushFX);
+
+// Reverb routes into bitcrush
 const reverbFX = new Tone.Reverb().connect(bitCrushFX);
-const hitPlayer = new Tone.Sampler({
+
+// Routes to feedback and reverb in parallel
+const hitSampler = new Tone.Sampler({
     urls: { C3: "hit.mp3" },
     baseUrl: "/sounds/",
 }).fan(feedbackFX, reverbFX);
-
+// Routes to feedback and reverb in parallel
 const hitSynth = new Tone.MembraneSynth().fan(feedbackFX, reverbFX);
-// const hitPlayer = new Tone.Player("/sounds/hit.mp3").toDestination();
-// const hitSound = new Audio("/sounds/hit.mp3");
-console.log(`sample Time ${hitPlayer.sampleTime}`);
-console.log("player: ", hitPlayer);
 
+// Plays the default material collision sound
 const playHitSound = (object) => (collision) => {
     const impactStrength = collision.contact.getImpactVelocityAlongNormal();
     // Value [0,1] for impact strength used to modulate
+    // Current implementation is problematic
     const adjustedImpactStrength = THREE.MathUtils.mapLinear(
         Math.min(impactStrength, debugVars.impactVelocitySoundCeiling),
         0,
@@ -129,17 +135,14 @@ const playHitSound = (object) => (collision) => {
         1
     );
     if (adjustedImpactStrength > 0.05) {
-        // Set instrument to use
-        const instrument = debugVars.synthesizeSound ? hitSynth : hitPlayer;
+        // instrument to use
+        const instrument = debugVars.synthesizeSound ? hitSynth : hitSampler;
         // Update Membrane Synth settings
         hitSynth.set({
-            // envelope: ,
-            pitchDecay: Math.max(
-                debugVars.restitution * impactStrength * 1.5,
-                0.001
-            ),
+            // Longer pitch decay on higher impact velocity bc it sounds weird
+            pitchDecay: Math.max(debugVars.restitution * impactStrength, 0.001),
         });
-        console.log(hitSynth);
+        // console.log(instrument);
         // Fix for web audio context error, not sure if it actually helps anything though
         if (Tone.context.state !== "running") {
             Tone.context.resume();
@@ -147,13 +150,15 @@ const playHitSound = (object) => (collision) => {
         // map from impactVelocity to volume. Set ceiling on max velocity to account for.
         // TODO: Logarithmic mapping will probably sound better
         // TODO: size of ball affects pitch?
-        // TODO: more reverb on high velocities
-        // Apply Audio effects
+        // Update BitCrush settings
         bitCrushFX.set({ bits: (34 - gameState.pixelSize) / 2 });
+        // Update delay settings
         feedbackFX.set({
             delayTime: gameState.delayTime,
             feedback: gameState.delayFeedback,
         });
+
+        // more reverb on high impact velocities
         reverbFX.set({
             // .001 minimum input for reverb decay
             decay: Math.max(adjustedImpactStrength * 2, 0.001),
@@ -167,7 +172,7 @@ const playHitSound = (object) => (collision) => {
             undefined,
             adjustedImpactStrength
         );
-
+        // Weird feature that sounds kinda cool under the right conditions
         object.transpose += gameState.noteIncrementOnBounce;
     }
 };
@@ -179,14 +184,15 @@ const textureLoader = new THREE.TextureLoader();
 const cubeTextureLoader = new THREE.CubeTextureLoader();
 
 const environmentMapTexture = cubeTextureLoader.load([
-    "/textures/environmentMaps/0/px.jpg",
-    "/textures/environmentMaps/0/nx.jpg",
-    "/textures/environmentMaps/0/py.jpg",
-    "/textures/environmentMaps/0/ny.jpg",
-    "/textures/environmentMaps/0/pz.jpg",
-    "/textures/environmentMaps/0/nz.jpg",
+    "/textures/environmentMaps/1/px.jpg",
+    "/textures/environmentMaps/1/nx.jpg",
+    "/textures/environmentMaps/1/py.jpg",
+    "/textures/environmentMaps/1/ny.jpg",
+    "/textures/environmentMaps/1/pz.jpg",
+    "/textures/environmentMaps/1/nz.jpg",
 ]);
 
+// scene.background = environmentMapTexture;
 /**
  * Physics
  */
@@ -218,8 +224,8 @@ const objectsToUpdate = [];
 // Create sphere
 const sphereGeometry = new THREE.SphereGeometry(1, 20, 20);
 const sphereMaterial = new THREE.MeshStandardMaterial({
-    metalness: 0.3,
-    roughness: 0.4,
+    metalness: 0.8,
+    roughness: 0.3,
     envMap: environmentMapTexture,
     envMapIntensity: 0.5,
 });
@@ -252,8 +258,8 @@ const createSphere = (radius, position) => {
 // Create box
 const boxGeometry = new THREE.BoxGeometry(1, 1, 1);
 const boxMaterial = new THREE.MeshStandardMaterial({
-    metalness: 0.3,
-    roughness: 0.4,
+    metalness: 0.8,
+    roughness: 0.2,
     envMap: environmentMapTexture,
     envMapIntensity: 0.5,
 });
