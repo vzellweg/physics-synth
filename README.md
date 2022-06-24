@@ -1,5 +1,7 @@
 # threejs-hackathon
 
+An audiovisual 3d physics simulation made as an introduction to cannonjs (physics) and tonejs (sound).
+
 ## Project Setup
 
 ```bash
@@ -13,9 +15,11 @@ yarn dev
 yarn deploy
 ```
 
-## Goal
+## Goals
 
-Create an interactive 3d scene, where the user can interact with 3d shapes to trigger some actions. Make the scene look as cool as possible.
+1. Use physics library in a 3d scene
+2. Generate sound in a 3d scene
+3. Implement audio effects synced with post-processing visual effects
 
 ## Helpful Resources
 
