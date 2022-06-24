@@ -226,8 +226,6 @@ const sphereGeometry = new THREE.SphereGeometry(1, 20, 20);
 const sphereMaterial = new THREE.MeshStandardMaterial({
     metalness: 0.8,
     roughness: 0.3,
-    envMap: environmentMapTexture,
-    envMapIntensity: 0.5,
 });
 
 const createSphere = (radius, position) => {
@@ -260,8 +258,6 @@ const boxGeometry = new THREE.BoxGeometry(1, 1, 1);
 const boxMaterial = new THREE.MeshStandardMaterial({
     metalness: 0.8,
     roughness: 0.2,
-    envMap: environmentMapTexture,
-    envMapIntensity: 0.5,
 });
 const createBox = (width, height, depth, position) => {
     // Three.js mesh
@@ -300,8 +296,6 @@ const floor = new THREE.Mesh(
         color: "#777777",
         metalness: 0.3,
         roughness: 0.4,
-        envMap: environmentMapTexture,
-        envMapIntensity: 0.5,
     })
 );
 floor.receiveShadow = true;
